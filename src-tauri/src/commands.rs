@@ -242,11 +242,7 @@ pub fn get_windows_list() -> Result<Vec<screenshot::WindowInfo>, String> {
 
 #[tauri::command]
 pub fn switch_to_review(app: AppHandle) -> Result<(), String> {
-    // Close toolbar window
-    if let Some(toolbar) = app.get_webview_window("toolbar") {
-        let _ = toolbar.close();
-    }
-    // Open review window
+    // Open review window first
     WebviewWindowBuilder::new(&app, "review", WebviewUrl::App("/review".into()))
         .title("StepTrace - Review")
         .inner_size(1100.0, 700.0)
@@ -254,16 +250,16 @@ pub fn switch_to_review(app: AppHandle) -> Result<(), String> {
         .resizable(true)
         .build()
         .map_err(|e| e.to_string())?;
+    // Then close toolbar window
+    if let Some(toolbar) = app.get_webview_window("toolbar") {
+        let _ = toolbar.close();
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub fn switch_to_toolbar(app: AppHandle) -> Result<(), String> {
-    // Close review window
-    if let Some(review) = app.get_webview_window("review") {
-        let _ = review.close();
-    }
-    // Open toolbar window
+    // Open toolbar window first
     WebviewWindowBuilder::new(&app, "toolbar", WebviewUrl::App("/".into()))
         .title("StepTrace")
         .inner_size(460.0, 56.0)
@@ -274,5 +270,9 @@ pub fn switch_to_toolbar(app: AppHandle) -> Result<(), String> {
         .transparent(true)
         .build()
         .map_err(|e| e.to_string())?;
+    // Then close review window
+    if let Some(review) = app.get_webview_window("review") {
+        let _ = review.close();
+    }
     Ok(())
 }
