@@ -64,6 +64,8 @@ fn start_recording_engine(handle: tauri::AppHandle) {
     // Main recording loop: processes input events and triggers captures
     thread::spawn(move || {
         let mut keystroke_buf = String::new();
+        let mut last_buffer_capture = std::time::Instant::now();
+        let buffer_interval = Duration::from_secs(3);
 
         loop {
             // Check for input events (non-blocking with timeout)
@@ -72,7 +74,6 @@ fn start_recording_engine(handle: tauri::AppHandle) {
                     let state = handle.state::<AppState>();
                     let mgr = state.manager.lock().unwrap();
                     if !mgr.is_recording() {
-                        // If not recording, still collect but don't capture
                         drop(mgr);
                         continue;
                     }
@@ -100,17 +101,20 @@ fn start_recording_engine(handle: tauri::AppHandle) {
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
-                    // Periodic buffer capture
-                    let state = handle.state::<AppState>();
-                    let mgr = state.manager.lock().unwrap();
-                    if mgr.is_recording() {
-                        let mode = mgr.capture_mode.clone();
-                        drop(mgr);
-                        if let Ok(screenshot) = capture::screenshot::capture(&mode) {
-                            let state = handle.state::<AppState>();
-                            let mut mgr = state.manager.lock().unwrap();
-                            let _ = mgr.add_buffer_entry(screenshot, None);
+                    // Periodic buffer capture (every 3 seconds, not every 100ms)
+                    if last_buffer_capture.elapsed() >= buffer_interval {
+                        let state = handle.state::<AppState>();
+                        let mgr = state.manager.lock().unwrap();
+                        if mgr.is_recording() {
+                            let mode = mgr.capture_mode.clone();
+                            drop(mgr);
+                            if let Ok(screenshot) = capture::screenshot::capture(&mode) {
+                                let state = handle.state::<AppState>();
+                                let mut mgr = state.manager.lock().unwrap();
+                                let _ = mgr.add_buffer_entry(screenshot, None);
+                            }
                         }
+                        last_buffer_capture = std::time::Instant::now();
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Disconnected) => {

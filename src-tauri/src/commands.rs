@@ -242,14 +242,18 @@ pub fn get_windows_list() -> Result<Vec<screenshot::WindowInfo>, String> {
 
 #[tauri::command]
 pub fn switch_to_review(app: AppHandle) -> Result<(), String> {
-    // Open review window first
-    WebviewWindowBuilder::new(&app, "review", WebviewUrl::App("/review".into()))
-        .title("StepTrace - Review")
-        .inner_size(1100.0, 700.0)
-        .center()
-        .resizable(true)
-        .build()
-        .map_err(|e| e.to_string())?;
+    // If review window already exists, just focus it
+    if let Some(review) = app.get_webview_window("review") {
+        let _ = review.set_focus();
+    } else {
+        WebviewWindowBuilder::new(&app, "review", WebviewUrl::App("/review".into()))
+            .title("StepTrace - Review")
+            .inner_size(1100.0, 700.0)
+            .center()
+            .resizable(true)
+            .build()
+            .map_err(|e| e.to_string())?;
+    }
     // Then close toolbar window
     if let Some(toolbar) = app.get_webview_window("toolbar") {
         let _ = toolbar.close();
@@ -259,17 +263,21 @@ pub fn switch_to_review(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn switch_to_toolbar(app: AppHandle) -> Result<(), String> {
-    // Open toolbar window first
-    WebviewWindowBuilder::new(&app, "toolbar", WebviewUrl::App("/".into()))
-        .title("StepTrace")
-        .inner_size(460.0, 56.0)
-        .center()
-        .resizable(false)
-        .decorations(false)
-        .always_on_top(true)
-        .transparent(true)
-        .build()
-        .map_err(|e| e.to_string())?;
+    // If toolbar window already exists, just focus it
+    if let Some(toolbar) = app.get_webview_window("toolbar") {
+        let _ = toolbar.set_focus();
+    } else {
+        WebviewWindowBuilder::new(&app, "toolbar", WebviewUrl::App("/".into()))
+            .title("StepTrace")
+            .inner_size(460.0, 56.0)
+            .center()
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .transparent(true)
+            .build()
+            .map_err(|e| e.to_string())?;
+    }
     // Then close review window
     if let Some(review) = app.get_webview_window("review") {
         let _ = review.close();

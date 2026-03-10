@@ -32,15 +32,27 @@ export default function RecordingToolbar() {
   const state = () => status().state;
 
   const handleStart = async () => {
-    await startRecording("Recording");
-    setElapsed(0);
-    elapsedTimer = window.setInterval(() => setElapsed((e) => e + 1), 1000);
+    try {
+      await startRecording("Recording");
+      setElapsed(0);
+      elapsedTimer = window.setInterval(() => setElapsed((e) => e + 1), 1000);
+    } catch (e) {
+      console.error("Failed to start recording:", e);
+    }
   };
 
   const handleStop = async () => {
-    await stopRecording();
+    try {
+      await stopRecording();
+    } catch (e) {
+      console.error("Failed to stop recording:", e);
+    }
     if (elapsedTimer) clearInterval(elapsedTimer);
-    await invoke("switch_to_review");
+    try {
+      await invoke("switch_to_review");
+    } catch (e) {
+      console.error("Failed to switch to review:", e);
+    }
   };
 
   const handlePause = async () => {
@@ -72,7 +84,7 @@ export default function RecordingToolbar() {
     <div class="toolbar" onMouseDown={onDrag}>
       <div class="toolbar-brand">ST</div>
 
-      <Show when={state() === "Idle"}>
+      <Show when={state() === "Idle" || state() === "Stopped"}>
         <button class="tb-btn rec" onClick={handleStart}>
           <span class="rec-dot" /> Record
         </button>
